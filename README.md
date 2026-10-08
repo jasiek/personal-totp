@@ -17,7 +17,7 @@ Open `http://127.0.0.1:4173`. `npm run build` assembles the static files in `dis
 ## How enrollment works
 
 - A click generates 20 random bytes using `crypto.getRandomValues`.
-- The QR encodes a standard `otpauth://totp/` URI, using unpadded Base32, HMAC-SHA-1, six digits, and a 30-second period. Both the issuer prefix and issuer parameter are `totp.jasiek.me`. The user chooses a 1–64-character label; colons and control characters are rejected for URI compatibility.
+- The QR encodes a standard `otpauth://totp/` URI, using unpadded Base32, HMAC-SHA-1, and a 30-second period. Users select six digits (the default) or eight digits; the QR, manual setup instructions, and both verification steps use that length. Choose a length supported by everyone’s authenticator app. Both the issuer prefix and issuer parameter are `totp.jasiek.me`. The user chooses a 1–64-character label; colons and control characters are rejected for URI compatibility.
 - Web Crypto verifies two consecutive codes from the imported token, allowing one time step of clock drift in either direction. The same time step cannot complete both checks. If the next code is missed, verification can be restarted without replacing the secret.
 - Each family member can repeat verification. Finishing clears secret references and displayed enrollment data, and overwrites the raw byte array. It cannot guarantee erasure of JavaScript-managed memory or a copied clipboard value.
 - No backend, analytics, browser storage, or network requests carry the secret. The QR library is bundled locally. A restrictive content security policy blocks connections and external resources.

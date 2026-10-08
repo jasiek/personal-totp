@@ -95,6 +95,57 @@ test("enrollment URI preserves issuer and safely encodes user labels", () => {
     assert.throws(() => validateLabel(invalid));
 });
 
+test("enrollment uses the selected length and rejects unsupported lengths", async () => {
+  const key = await importKey(rfcSecret);
+  for (const digits of [6, 8]) {
+    const uri = new URL(enrollmentUri(rfcSecret, "Family", digits));
+    assert.equal(uri.searchParams.get("digits"), String(digits));
+  }
+  for (const digits of [0, 7, 9, "8", NaN]) {
+    assert.throws(() => enrollmentUri(rfcSecret, "Family", digits));
+    await assert.rejects(codeAtCounter(key, 1, digits));
+    await assert.rejects(matchingCounters(key, "12345678", 59000, digits));
+  }
+});
+
+test("eight-digit verification preserves leading zeroes and rejects six-digit codes", async () => {
+  const key = await importKey(rfcSecret);
+  const now = 1111111109000;
+  const current = Math.floor(now / 30000);
+  const first = await matchingCounters(key, "07081804", now, 8);
+  assert.deepEqual(first, [current]);
+  assert.deepEqual(await matchingCounters(key, "081804", now, 8), []);
+  assert.deepEqual(await matchingCounters(key, "07081804", now, 6), []);
+  assert.equal(await verifyNextCode(key, "07081804", first, now, 8), false);
+  assert.equal(
+    await verifyNextCode(key, "14050471", first, now + 30000, 8),
+    true,
+  );
+  assert.equal(
+    await verifyNextCode(key, "050471", first, now + 30000, 8),
+    false,
+  );
+  assert.equal(
+    await verifyNextCode(key, "14050471", first, now + 120000, 8),
+    false,
+  );
+  const skipped = await codeAtCounter(key, current + 2, 8);
+  assert.equal(
+    await verifyNextCode(key, skipped, first, now + 60000, 8),
+    false,
+  );
+  for (const delta of [-1, 0, 1]) {
+    const code = await codeAtCounter(key, current + delta, 8);
+    assert.ok(
+      (await matchingCounters(key, code, now, 8)).includes(current + delta),
+    );
+  }
+  for (const delta of [-2, 2]) {
+    const code = await codeAtCounter(key, current + delta, 8);
+    assert.deepEqual(await matchingCounters(key, code, now, 8), []);
+  }
+});
+
 test("verification accepts only current or adjacent time steps", async () => {
   const key = await importKey(rfcSecret);
   const now = 1234567890000;

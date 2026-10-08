@@ -32,13 +32,18 @@ export function createSecret() {
   return crypto.getRandomValues(new Uint8Array(20));
 }
 
-export function enrollmentUri(secret, value) {
+export function validateDigits(digits) {
+  if (digits !== 6 && digits !== 8) throw new Error("Choose 6 or 8 digits.");
+  return digits;
+}
+
+export function enrollmentUri(secret, value, digits = 6) {
   const label = validateLabel(value);
   const params = new URLSearchParams({
     secret: base32(secret),
     issuer: ISSUER,
     algorithm: "SHA1",
-    digits: "6",
+    digits: String(validateDigits(digits)),
     period: String(PERIOD),
   });
   return `otpauth://totp/${ISSUER}:${encodeURIComponent(label)}?${params}`;
@@ -55,6 +60,7 @@ export function importKey(secret) {
 }
 
 export async function codeAtCounter(key, counter, digits = 6) {
+  validateDigits(digits);
   if (!Number.isSafeInteger(counter) || counter < 0)
     throw new Error("Invalid counter.");
   const buffer = new ArrayBuffer(8);
@@ -66,12 +72,18 @@ export async function codeAtCounter(key, counter, digits = 6) {
 }
 
 // Keep every matching step in the rare case of adjacent code collisions.
-export async function matchingCounters(key, code, now = Date.now()) {
-  if (!/^\d{6}$/.test(code)) return [];
+export async function matchingCounters(
+  key,
+  code,
+  now = Date.now(),
+  digits = 6,
+) {
+  validateDigits(digits);
+  if (!new RegExp(`^\\d{${digits}}$`).test(code)) return [];
   const current = Math.floor(now / 1000 / PERIOD);
   const matches = [];
   for (const counter of [current, current - 1, current + 1]) {
-    if (counter >= 0 && (await codeAtCounter(key, counter)) === code)
+    if (counter >= 0 && (await codeAtCounter(key, counter, digits)) === code)
       matches.push(counter);
   }
   return matches;
@@ -82,7 +94,8 @@ export async function verifyNextCode(
   code,
   firstCounters,
   now = Date.now(),
+  digits = 6,
 ) {
-  const matches = await matchingCounters(key, code, now);
+  const matches = await matchingCounters(key, code, now, digits);
   return matches.some((counter) => firstCounters.includes(counter - 1));
 }

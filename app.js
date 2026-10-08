@@ -5,6 +5,7 @@ import {
   enrollmentUri,
   importKey,
   matchingCounters,
+  validateDigits,
   validateLabel,
   verifyNextCode,
 } from "./totp.js";
@@ -13,6 +14,7 @@ const $ = (id) => document.getElementById(id);
 let secret = null;
 let key = null;
 let label = "";
+let digits = 6;
 let firstCounters = [];
 let busy = false;
 let generation = 0;
@@ -32,6 +34,12 @@ function showPanel(name, step, focusId) {
 function resetVerification() {
   firstCounters = [];
   $("verification-code").value = "";
+  $("verification-code").maxLength = digits;
+  $("verification-code").pattern = `[0-9]{${digits}}`;
+  $("verification-code").placeholder = "0".repeat(digits);
+  $("verification-code").classList.toggle("eight-digits", digits === 8);
+  $("verify-instructions").textContent =
+    `Enter the current ${digits}-digit code from your authenticator. Then wait for it to change and enter the next code.`;
   $("code-label").textContent = "First code";
   $("verify-button").textContent = "Check first code →";
   $("verify-status").textContent = "";
@@ -47,6 +55,9 @@ function clearSecret() {
   secret = null;
   key = null;
   label = "";
+  digits = 6;
+  $("token-digits").value = "6";
+  $("manual-digits").textContent = "6";
   $("qr-code").replaceChildren();
   $("manual-key").textContent = "";
   $("enroll-label").textContent = "";
@@ -69,6 +80,7 @@ $("create-form").addEventListener("submit", async (event) => {
   $("create-error").textContent = "";
   try {
     label = validateLabel($("token-label").value);
+    digits = validateDigits(Number($("token-digits").value));
   } catch (error) {
     $("create-error").textContent = error.message;
     return;
@@ -82,7 +94,7 @@ $("create-form").addEventListener("submit", async (event) => {
     if (activeGeneration !== generation) return;
     key = imported;
     const qr = qrcode(0, "M");
-    qr.addData(enrollmentUri(secret, label), "Byte");
+    qr.addData(enrollmentUri(secret, label, digits), "Byte");
     qr.make();
     // The library renders only QR geometry. Labels are never interpreted as HTML.
     $("qr-code").innerHTML = qr.createSvgTag({
@@ -91,6 +103,7 @@ $("create-form").addEventListener("submit", async (event) => {
       scalable: true,
     });
     $("manual-key").textContent = base32(secret);
+    $("manual-digits").textContent = String(digits);
     $("enroll-label").textContent = label;
     showPanel("enroll", 2, "enroll-title");
   } catch {
@@ -138,9 +151,9 @@ $("verify-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   if (busy || !key) return;
   const code = $("verification-code").value.trim();
-  if (!/^\d{6}$/.test(code)) {
+  if (!new RegExp(`^\\d{${digits}}$`).test(code)) {
     $("verify-error").textContent =
-      "Enter all six digits from your authenticator app.";
+      `Enter all ${digits} digits from your authenticator app.`;
     return;
   }
   busy = true;
@@ -149,7 +162,7 @@ $("verify-form").addEventListener("submit", async (event) => {
   const activeGeneration = generation;
   try {
     if (!firstCounters.length) {
-      const matches = await matchingCounters(key, code);
+      const matches = await matchingCounters(key, code, Date.now(), digits);
       if (activeGeneration !== generation) return;
       if (!matches.length) {
         $("verify-error").textContent =
@@ -166,7 +179,13 @@ $("verify-form").addEventListener("submit", async (event) => {
       $("verification-code").value = "";
       $("verification-code").focus();
     } else {
-      const valid = await verifyNextCode(key, code, firstCounters);
+      const valid = await verifyNextCode(
+        key,
+        code,
+        firstCounters,
+        Date.now(),
+        digits,
+      );
       if (activeGeneration !== generation) return;
       if (!valid) {
         $("verify-error").textContent =

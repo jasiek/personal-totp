@@ -116,6 +116,18 @@
             <p class="field-hint" id="label-hint">
               Choose a name, not a password. No colons.
             </p>
+            <label for="token-digits" class="digits-label">Code length</label>
+            <select
+              id="token-digits"
+              name="digits"
+              aria-describedby="digits-hint"
+            >
+              <option value="6" selected>6 digits</option>
+              <option value="8">8 digits</option>
+            </select>
+            <p class="field-hint" id="digits-hint">
+              Choose a length supported by everyone’s authenticator app.
+            </p>
             <div class="issuer-row">
               <span>Issuer</span><code>totp.jasiek.me</code>
             </div>
@@ -148,7 +160,8 @@
             <summary>Can’t scan? Enter the key manually</summary>
             <div class="manual-content">
               <p>
-                Choose a time-based token: 6 digits, 30 seconds, SHA-1. Use
+                Choose a time-based token:
+                <span id="manual-digits">6</span> digits, 30 seconds, SHA-1. Use
                 <strong>totp.jasiek.me</strong> as the issuer.
               </p>
               <code id="manual-key"></code
