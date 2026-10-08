@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Create a shared authenticator token for your family. A little extra reassurance when you call."
+    />
+    <meta name="referrer" content="no-referrer" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'none'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'"
+    />
+    <title>Family signal · Personal TOTP</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script type="module" src="./app.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="./"
+        ><img src="./favicon.svg" width="34" height="34" alt="" />
+        <span>family signal<span class="brand-dot">.</span></span></a
+      >
+      <span class="site-address">totp.jasiek.me</span>
+    </header>
+    <main>
+      <section class="intro" aria-labelledby="intro-title">
+        <div class="eyebrow">
+          <span class="small-dot"></span> A LITTLE MORE PEACE OF MIND
+        </div>
+        <h1 id="intro-title">
+          A familiar voice.<br />A little extra <em>certainty.</em>
+        </h1>
+        <p class="lead">
+          Create a shared code for your family. When a call feels unusual, ask
+          for the code in your authenticator app and check that it matches.
+        </p>
+        <div class="privacy-note">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            aria-hidden="true"
+          >
+            <rect x="5" y="10" width="14" height="11" rx="3" />
+            <path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2" />
+          </svg>
+          <p>
+            Created on your device.<br /><span
+              >No account. No key sent to a server.</span
+            >
+          </p>
+        </div>
+        <div class="how-it-works">
+          <h2>One setup. A shared signal.</h2>
+          <ol>
+            <li>
+              <span class="instruction-number">01</span>
+              <div>
+                <strong>Make a family token</strong>
+                <p>Give it a name everyone will recognize.</p>
+              </div>
+            </li>
+            <li>
+              <span class="instruction-number">02</span>
+              <div>
+                <strong>Scan it together</strong>
+                <p>
+                  Each trusted family member scans the same QR code in an
+                  authenticator app, such as Authy.
+                </p>
+              </div>
+            </li>
+            <li>
+              <span class="instruction-number">03</span>
+              <div>
+                <strong>Check before you trust</strong>
+                <p>
+                  On a call, ask the other person to read their current code.
+                  Compare it with your own app.
+                </p>
+              </div>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <section class="setup-card" aria-label="Set up your family token">
+        <ol class="steps" aria-label="Setup progress">
+          <li id="step-1" aria-current="step"><span>1</span> Create</li>
+          <li id="step-2"><span>2</span> Add to app</li>
+          <li id="step-3"><span>3</span> Confirm</li>
+        </ol>
+
+        <section id="create-panel" class="panel">
+          <div class="card-icon" aria-hidden="true">⌁</div>
+          <h2>Your family’s secret handshake.</h2>
+          <p>
+            Start with a name for your shared token. This is how it will appear
+            in your authenticator app.
+          </p>
+          <form id="create-form">
+            <label for="token-label">Token name</label>
+            <input
+              id="token-label"
+              name="label"
+              placeholder="e.g. The Kowalski family"
+              maxlength="64"
+              required
+              autocomplete="off"
+              aria-describedby="label-hint create-error"
+            />
+            <p class="field-hint" id="label-hint">
+              Choose a name, not a password. No colons.
+            </p>
+            <div class="issuer-row">
+              <span>Issuer</span><code>totp.jasiek.me</code>
+            </div>
+            <p id="create-error" class="error" role="alert"></p>
+            <button class="button primary" id="create-button" type="submit">
+              Create family token <span aria-hidden="true">↗</span>
+            </button>
+          </form>
+          <p class="card-footnote">
+            A new, random secret is created only when you click.
+          </p>
+        </section>
+
+        <section id="enroll-panel" class="panel" hidden>
+          <div class="eyebrow">YOUR SHARED TOKEN</div>
+          <h2 id="enroll-title" tabindex="-1">Add it to your apps.</h2>
+          <p>
+            In Authy or another authenticator, add an account and scan this QR
+            code. Have each trusted family member scan
+            <strong>this same code</strong>, ideally together in person.
+          </p>
+          <div
+            id="qr-code"
+            class="qr-code"
+            role="img"
+            aria-label="QR code containing the shared authenticator secret"
+          ></div>
+          <p class="token-name" id="enroll-label"></p>
+          <details id="manual-details">
+            <summary>Can’t scan? Enter the key manually</summary>
+            <div class="manual-content">
+              <p>
+                Choose a time-based token: 6 digits, 30 seconds, SHA-1. Use
+                <strong>totp.jasiek.me</strong> as the issuer.
+              </p>
+              <code id="manual-key"></code
+              ><button id="copy-key" class="button secondary" type="button">
+                Copy setup key
+              </button>
+              <p id="copy-status" class="field-hint" role="status"></p>
+            </div>
+          </details>
+          <p class="notice">
+            Keep this QR code and key private. Anyone who has either can
+            generate your family’s codes. This page does not save them; finish
+            adding everyone before closing it.
+          </p>
+          <button id="begin-verify" class="button primary" type="button">
+            I’ve added it — check my codes <span aria-hidden="true">→</span>
+          </button>
+        </section>
+
+        <section id="verify-panel" class="panel" hidden>
+          <div class="eyebrow" id="verify-eyebrow">ONE LAST CHECK</div>
+          <h2 id="verify-title" tabindex="-1">Let’s make sure it works.</h2>
+          <p id="verify-instructions">
+            Enter the current six-digit code from your authenticator. Then wait
+            for it to change and enter the next code.
+          </p>
+          <div class="verification-progress" aria-label="Verification progress">
+            <span id="first-check">1 · First code</span
+            ><span id="second-check">2 · Next code</span>
+          </div>
+          <form id="verify-form">
+            <label for="verification-code" id="code-label">First code</label>
+            <input
+              id="verification-code"
+              class="code-input"
+              type="text"
+              inputmode="numeric"
+              pattern="[0-9]{6}"
+              maxlength="6"
+              autocomplete="off"
+              placeholder="000000"
+              required
+              aria-describedby="verify-instructions verify-error"
+            />
+            <p id="verify-error" class="error" role="alert"></p>
+            <p id="verify-status" class="field-hint" role="status"></p>
+            <button id="verify-button" class="button primary" type="submit">
+              Check first code <span aria-hidden="true">→</span>
+            </button>
+          </form>
+          <button id="restart-check" class="text-button" type="button" hidden>
+            Restart the two-code check
+          </button>
+          <button id="back-to-qr" class="text-button" type="button">
+            Back to QR code
+          </button>
+        </section>
+
+        <section id="success-panel" class="panel" hidden>
+          <div class="success-icon" aria-hidden="true">✓</div>
+          <div class="eyebrow">BOTH CODES MATCHED</div>
+          <h2 id="success-title" tabindex="-1">
+            You’re on the same wavelength.
+          </h2>
+          <p>
+            Your app is generating the right codes for
+            <strong id="success-label"></strong>. You can run the same check for
+            each family member’s app.
+          </p>
+          <div class="call-example">
+            <span>THE NEXT TIME A CALL FEELS OFF</span>
+            <p>“Just to check, what’s our family code?”</p>
+            <small
+              >Compare their answer with your authenticator. Codes change every
+              30 seconds.</small
+            >
+          </div>
+          <button id="check-another" class="button primary" type="button">
+            Check another family member’s app
+          </button>
+          <button id="show-qr" class="text-button" type="button">
+            Show the QR code again
+          </button>
+          <button id="finish" class="button secondary" type="button">
+            Finish & clear the setup key
+          </button>
+        </section>
+
+        <section id="finished-panel" class="panel" hidden>
+          <div class="success-icon" aria-hidden="true">✓</div>
+          <h2 id="finished-title" tabindex="-1">All set for your next call.</h2>
+          <p>
+            The setup key has been cleared from this page. Your family’s token
+            stays in the authenticator apps where you added it.
+          </p>
+          <p>
+            You don’t need this website to use your token. Just open your
+            authenticator when you want to check a call.
+          </p>
+          <button id="new-token" class="button primary" type="button">
+            Create another token
+          </button>
+        </section>
+        <noscript
+          ><p class="notice">
+            JavaScript is needed to generate a secret securely on your device
+            and check your codes.
+          </p></noscript
+        >
+        <div class="card-bottom">
+          <span class="small-dot"></span> Private by design. Made for your inner
+          circle.
+        </div>
+      </section>
+
+      <aside class="safety-note">
+        <span class="note-symbol" aria-hidden="true">i</span>
+        <div>
+          <h2>A useful check, not a guarantee.</h2>
+          <p>
+            A matching code shows access to your shared secret, not a person’s
+            identity. Codes can be relayed in real time, and anyone in the group
+            can produce them. If a request involves money or feels wrong, hang
+            up and call a number you already know. Never use or share a code
+            from a bank, email, or other account for this check.
+          </p>
+        </div>
+      </aside>
+    </main>
+    <footer>
+      <span>Closer connections. A little more confidence.</span
+      ><a href="#about"
+        >How your privacy works <span aria-hidden="true">↗</span></a
+      >
+    </footer>
+    <section id="about" class="about">
+      <h2>Your secret stays with you.</h2>
+      <p>
+        This site uses your browser’s cryptographic random generator to create a
+        160-bit secret. QR generation and both code checks happen locally. There
+        are no analytics, external QR services, cookies, or browser storage.
+        Your authenticator app may have its own backup or sync settings. If a
+        phone or key is compromised, create a new token and have everyone
+        replace the old one.
+      </p>
+    </section>
+  </body>
+</html>
